@@ -34,6 +34,12 @@ function findAdbPath() {
 const ADB_PATH = findAdbPath();
 console.log('🔍 ADB path:', ADB_PATH);
 
+// Configurar PATH para comandos exec
+const execEnv = {
+    ...process.env,
+    PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}`
+};
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -82,7 +88,7 @@ ipcMain.on('marcar-coordenadas', () => {
     enviarLog('🎯 Abriendo herramienta de marcado...', 'info');
 
     // Tomar captura de pantalla
-    exec(`${ADB_PATH} shell screencap -p /sdcard/batalla.png && ${ADB_PATH} pull /sdcard/batalla.png batalla.png`, (error) => {
+    exec(`${ADB_PATH} shell screencap -p /sdcard/batalla.png && ${ADB_PATH} pull /sdcard/batalla.png batalla.png`, { env: execEnv }, (error) => {
         if (error) {
             enviarLog('❌ Error al capturar pantalla', 'error');
             return;
@@ -148,9 +154,11 @@ ipcMain.on('start-bot-emulador', (event, config) => {
     enviarLog('🚀 Verificando conexión con emulador...', 'info');
 
     // Verificar conexión ADB
-    exec(`${ADB_PATH} devices`, (error, stdout) => {
+    exec(`${ADB_PATH} devices`, { env: execEnv }, (error, stdout) => {
         if (error || !stdout.includes('emulator')) {
             enviarLog('❌ Emulador no detectado. Inicia el emulador primero.', 'error');
+            console.error('ADB error:', error);
+            console.log('ADB stdout:', stdout);
             return;
         }
 
@@ -170,7 +178,10 @@ ipcMain.on('start-bot-emulador', (event, config) => {
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
         // Iniciar bot con configuración
-        botProcess = spawn('node', ['bot-emulador-adb.js', configPath]);
+        botProcess = spawn('node', ['bot-emulador-adb.js', configPath], {
+            env: execEnv,
+            cwd: __dirname
+        });
 
         botProcess.stdout.on('data', (data) => {
             const output = data.toString();

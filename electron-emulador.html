@@ -256,6 +256,19 @@
             <h1>🌸 POPPO Bot Emulador</h1>
 
             <div class="config-section">
+                <h3>📱 Estado del Emulador</h3>
+                <div style="text-align: center; padding: 8px 0;">
+                    <div id="emuladorEstado" style="font-size: 13px; margin-bottom: 8px;">
+                        <span class="status-indicator status-inactive"></span>
+                        <span id="emuladorTexto">Verificando...</span>
+                    </div>
+                    <button class="btn btn-success" id="btnIniciarEmulador" onclick="iniciarEmulador()" style="display: none;">
+                        🚀 Iniciar Emulador
+                    </button>
+                </div>
+            </div>
+
+            <div class="config-section">
                 <h3>📍 Coordenadas</h3>
                 <div class="input-row">
                     <div class="input-group">
@@ -423,6 +436,32 @@
             ipcRenderer.send('probar-coordenadas', config);
         }
 
+        function iniciarEmulador() {
+            addLog('🚀 Iniciando emulador...', 'info');
+            document.getElementById('btnIniciarEmulador').disabled = true;
+            ipcRenderer.send('iniciar-emulador');
+        }
+
+        function actualizarEstadoEmulador(conectado) {
+            const estadoDiv = document.getElementById('emuladorEstado');
+            const textoSpan = document.getElementById('emuladorTexto');
+            const btnIniciar = document.getElementById('btnIniciarEmulador');
+            const indicator = estadoDiv.querySelector('.status-indicator');
+
+            if (conectado) {
+                indicator.classList.remove('status-inactive');
+                indicator.classList.add('status-active');
+                textoSpan.textContent = 'Emulador Conectado';
+                btnIniciar.style.display = 'none';
+            } else {
+                indicator.classList.remove('status-active');
+                indicator.classList.add('status-inactive');
+                textoSpan.textContent = 'Emulador Desconectado';
+                btnIniciar.style.display = 'block';
+                btnIniciar.disabled = false;
+            }
+        }
+
         function getConfig() {
             return {
                 buttonX: parseInt(document.getElementById('coordX').value),
@@ -497,6 +536,15 @@
             document.getElementById('coordY').value = coords.y;
             addLog(`✅ Coordenadas actualizadas: (${coords.x}, ${coords.y})`, 'success');
         });
+
+        ipcRenderer.on('emulador-estado', (event, estado) => {
+            actualizarEstadoEmulador(estado.conectado);
+        });
+
+        // Solicitar estado inicial del emulador
+        setTimeout(() => {
+            ipcRenderer.send('verificar-emulador');
+        }, 1000);
     </script>
 </body>
 </html>

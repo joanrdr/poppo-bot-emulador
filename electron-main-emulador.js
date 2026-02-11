@@ -40,6 +40,23 @@ const execEnv = {
     PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${process.env.PATH || ''}`
 };
 
+// Ruta del emulador
+const EMULATOR_PATH = process.env.ANDROID_HOME
+    ? `${process.env.ANDROID_HOME}/emulator/emulator`
+    : `${process.env.HOME}/Library/Android/sdk/emulator/emulator`;
+
+const AVD_NAME = 'POPPO_Bot';
+
+// Verificar estado del emulador
+function verificarEstadoEmulador() {
+    exec(`${ADB_PATH} devices`, { env: execEnv }, (error, stdout) => {
+        const conectado = !error && (stdout.includes('emulator') || stdout.includes('device'));
+        if (mainWindow) {
+            mainWindow.webContents.send('emulador-estado', { conectado });
+        }
+    });
+}
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -82,6 +99,43 @@ app.on('activate', () => {
 });
 
 // ==================== IPC HANDLERS ====================
+
+// Verificar estado del emulador
+ipcMain.on('verificar-emulador', () => {
+    verificarEstadoEmulador();
+});
+
+// Iniciar emulador
+ipcMain.on('iniciar-emulador', () => {
+    enviarLog('🚀 Iniciando emulador...', 'info');
+    enviarLog('⏱️  Esto puede tardar 30-60 segundos...', 'warning');
+
+    const emulatorProcess = spawn(EMULATOR_PATH, ['-avd', AVD_NAME, '-no-snapshot-load'], {
+        env: execEnv,
+        detached: true,
+        stdio: 'ignore'
+    });
+
+    emulatorProcess.unref();
+
+    // Verificar estado cada 5 segundos
+    let intentos = 0;
+    const maxIntentos = 20;
+    const intervalo = setInterval(() => {
+        exec(`${ADB_PATH} devices`, { env: execEnv }, (error, stdout) => {
+            intentos++;
+            if (!error && (stdout.includes('emulator') || stdout.includes('device'))) {
+                clearInterval(intervalo);
+                enviarLog('✅ Emulador iniciado correctamente', 'success');
+                verificarEstadoEmulador();
+            } else if (intentos >= maxIntentos) {
+                clearInterval(intervalo);
+                enviarLog('⚠️ El emulador está tardando más de lo esperado', 'warning');
+                verificarEstadoEmulador();
+            }
+        });
+    }, 5000);
+});
 
 // Marcar coordenadas visualmente
 ipcMain.on('marcar-coordenadas', () => {

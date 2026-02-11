@@ -36,6 +36,10 @@
       "node_modules/**/*",
       "package.json"
     ],
+    "asarUnpack": [
+      "bot-emulador-adb.js",
+      "click-capturador.py"
+    ],
     "mac": {
       "category": "public.app-category.utilities",
       "target": "dir"

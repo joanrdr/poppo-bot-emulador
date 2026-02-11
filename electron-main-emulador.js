@@ -177,14 +177,23 @@ ipcMain.on('start-bot-emulador', (event, config) => {
         const configPath = '/tmp/bot-config.json';
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
-        // Determinar ruta del bot (dentro o fuera del .asar)
-        const botScriptPath = path.join(__dirname, 'bot-emulador-adb.js');
-        const workingDir = app.isPackaged ? process.cwd() : __dirname;
+        // Determinar ruta del bot
+        // En app empaquetada, los archivos asarUnpack están en .asar.unpacked
+        let botScriptPath;
+        if (app.isPackaged) {
+            // Reemplazar .asar con .asar.unpacked para archivos extraídos
+            botScriptPath = __dirname.replace('app.asar', 'app.asar.unpacked');
+            botScriptPath = path.join(botScriptPath, 'bot-emulador-adb.js');
+        } else {
+            botScriptPath = path.join(__dirname, 'bot-emulador-adb.js');
+        }
+
+        console.log('📍 Bot script path:', botScriptPath);
 
         // Iniciar bot con configuración
         botProcess = spawn('node', [botScriptPath, configPath], {
             env: execEnv,
-            cwd: workingDir
+            cwd: path.dirname(botScriptPath)
         });
 
         botProcess.stdout.on('data', (data) => {

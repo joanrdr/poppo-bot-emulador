@@ -177,10 +177,14 @@ ipcMain.on('start-bot-emulador', (event, config) => {
         const configPath = '/tmp/bot-config.json';
         fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
+        // Determinar ruta del bot (dentro o fuera del .asar)
+        const botScriptPath = path.join(__dirname, 'bot-emulador-adb.js');
+        const workingDir = app.isPackaged ? process.cwd() : __dirname;
+
         // Iniciar bot con configuración
-        botProcess = spawn('node', ['bot-emulador-adb.js', configPath], {
+        botProcess = spawn('node', [botScriptPath, configPath], {
             env: execEnv,
-            cwd: __dirname
+            cwd: workingDir
         });
 
         botProcess.stdout.on('data', (data) => {

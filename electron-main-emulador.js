@@ -50,7 +50,11 @@ const AVD_NAME = 'POPPO_Bot';
 // Verificar estado del emulador
 function verificarEstadoEmulador() {
     exec(`${ADB_PATH} devices`, { env: execEnv }, (error, stdout) => {
-        const conectado = !error && (stdout.includes('emulator') || stdout.includes('device'));
+        // Verificar que haya una línea con "emulator" o "device" además del header
+        const lines = stdout.split('\n').filter(line => line.trim());
+        const conectado = !error && lines.length > 1 && lines.some(line =>
+            line.includes('emulator') && line.includes('device')
+        );
         if (mainWindow) {
             mainWindow.webContents.send('emulador-estado', { conectado });
         }

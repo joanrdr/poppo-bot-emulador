@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Marcar Botón de la Rosa</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #ff69b4;
+            text-align: center;
+        }
+
+        .instrucciones {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-width: 600px;
+        }
+
+        .container {
+            position: relative;
+            display: inline-block;
+            border: 3px solid #ff69b4;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #pantalla {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            cursor: crosshair;
+        }
+
+        .marca {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 3px solid #00ff00;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .coordenadas {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .coordenadas.activo {
+            background: #00ff00;
+            color: #000;
+            font-weight: bold;
+        }
+
+        button {
+            background: #ff69b4;
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #ff1493;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌸 MARCA EL BOTÓN DE LA ROSA</h1>
+
+    <div class="instrucciones">
+        <h2>📋 INSTRUCCIONES:</h2>
+        <ol>
+            <li>Mira la imagen de tu batalla abajo</li>
+            <li>Haz <strong>CLICK</strong> exactamente en el <strong>botón de la rosa 🌸</strong></li>
+            <li>Verás un círculo verde en donde hiciste click</li>
+            <li>Si es correcto, presiona <strong>"GUARDAR COORDENADAS"</strong></li>
+            <li>Si te equivocaste, haz click de nuevo en el lugar correcto</li>
+        </ol>
+    </div>
+
+    <div class="container">
+        <img id="pantalla" src="file:///tmp/batalla2.png" alt="Pantalla de batalla">
+        <div id="marca" class="marca" style="display: none;"></div>
+    </div>
+
+    <div class="coordenadas" id="info">
+        Haz click en el botón de la rosa para marcar su ubicación
+    </div>
+
+    <div>
+        <button id="guardar" disabled onclick="guardarCoordenadas()">💾 GUARDAR COORDENADAS</button>
+        <button onclick="nuevaCaptura()">🔄 TOMAR NUEVA CAPTURA</button>
+    </div>
+
+    <script>
+        let coordenadasX = null;
+        let coordenadasY = null;
+        const escalaX = 1080; // Resolución del emulador
+        const escalaY = 2400;
+
+        const img = document.getElementById('pantalla');
+        const marca = document.getElementById('marca');
+        const info = document.getElementById('info');
+        const btnGuardar = document.getElementById('guardar');
+
+        img.addEventListener('click', function(e) {
+            const rect = this.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Calcular coordenadas reales del emulador
+            const realX = Math.round((clickX / rect.width) * escalaX);
+            const realY = Math.round((clickY / rect.height) * escalaY);
+
+            coordenadasX = realX;
+            coordenadasY = realY;
+
+            // Mostrar marca
+            marca.style.display = 'block';
+            marca.style.left = clickX + 'px';
+            marca.style.top = clickY + 'px';
+
+            // Actualizar info
+            info.className = 'coordenadas activo';
+            info.innerHTML = `
+                ✅ BOTÓN MARCADO<br>
+                📍 Coordenadas: X=${realX}, Y=${realY}<br>
+                <small>(Click en pantalla: ${Math.round(clickX)}, ${Math.round(clickY)})</small>
+            `;
+
+            // Habilitar botón guardar
+            btnGuardar.disabled = false;
+        });
+
+        function guardarCoordenadas() {
+            if (coordenadasX === null || coordenadasY === null) {
+                alert('❌ Primero haz click en el botón de la rosa');
+                return;
+            }
+
+            // Mostrar coordenadas para copiar
+            const resultado = `
+╔═══════════════════════════════════════════════╗
+║  ✅ COORDENADAS GUARDADAS                    ║
+╚═══════════════════════════════════════════════╝
+
+📍 Coordenadas del botón de la rosa:
+   X = ${coordenadasX}
+   Y = ${coordenadasY}
+
+📋 COPIA ESTAS COORDENADAS Y DILE AL ASISTENTE:
+
+"Las coordenadas son X=${coordenadasX}, Y=${coordenadasY}"
+
+El asistente las guardará en bot-emulador-adb.js automáticamente.
+            `;
+
+            alert(resultado);
+
+            // También copiar al portapapeles
+            const texto = `X=${coordenadasX}, Y=${coordenadasY}`;
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('✅ Coordenadas copiadas al portapapeles!');
+            });
+        }
+
+        function nuevaCaptura() {
+            alert('🔄 Ejecuta en la terminal:\n\nadb shell screencap -p /sdcard/batalla.png && adb pull /sdcard/batalla.png /tmp/batalla.png\n\nLuego recarga esta página.');
+        }
+    </script>
+</body>
+</html>

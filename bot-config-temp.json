@@ -1,0 +1,10 @@
+{
+  "url": "https://www.poppo.com/@68375648/live",
+  "clicksMin": 300,
+  "clicksMax": 1400,
+  "pausaMin": 4,
+  "pausaMax": 15,
+  "velocidadMin": 60,
+  "velocidadMax": 200,
+  "headless": true
+}

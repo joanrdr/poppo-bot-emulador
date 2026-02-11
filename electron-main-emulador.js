@@ -1,0 +1,268 @@
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path = require('path');
+const { exec, spawn } = require('child_process');
+const fs = require('fs');
+
+let mainWindow;
+let botProcess = null;
+let estadisticas = {
+    clicksTotal: 0,
+    rafagasCompletadas: 0,
+    velocidad: 0,
+    inicioSesion: null
+};
+
+function createWindow() {
+    mainWindow = new BrowserWindow({
+        width: 1200,
+        height: 750,
+        minWidth: 1000,
+        minHeight: 650,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        },
+        title: 'POPPO Bot Emulador',
+        backgroundColor: '#667eea'
+    });
+
+    mainWindow.loadFile('electron-emulador.html');
+
+    // Abrir DevTools en desarrollo
+    // mainWindow.webContents.openDevTools();
+
+    mainWindow.on('closed', () => {
+        if (botProcess) {
+            botProcess.kill();
+        }
+        mainWindow = null;
+    });
+}
+
+app.whenReady().then(createWindow);
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
+app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
+});
+
+// ==================== IPC HANDLERS ====================
+
+// Marcar coordenadas visualmente
+ipcMain.on('marcar-coordenadas', () => {
+    enviarLog('🎯 Abriendo herramienta de marcado...', 'info');
+
+    // Tomar captura de pantalla
+    exec('adb shell screencap -p /sdcard/batalla.png && adb pull /sdcard/batalla.png batalla.png', (error) => {
+        if (error) {
+            enviarLog('❌ Error al capturar pantalla', 'error');
+            return;
+        }
+
+        // Iniciar servidor Python
+        const pythonServer = spawn('python3', ['click-capturador.py']);
+
+        pythonServer.stdout.on('data', (data) => {
+            const output = data.toString();
+            console.log('Python:', output);
+
+            // Detectar coordenadas guardadas
+            const match = output.match(/X=(\d+), Y=(\d+)/);
+            if (match) {
+                const coords = {
+                    x: parseInt(match[1]),
+                    y: parseInt(match[2])
+                };
+                mainWindow.webContents.send('coordenadas-actualizadas', coords);
+                pythonServer.kill();
+            }
+        });
+
+        enviarLog('📍 Servidor de marcado iniciado en http://localhost:8000', 'success');
+        enviarLog('👆 Haz clic en la imagen para marcar el botón', 'info');
+    });
+});
+
+// Probar coordenadas con 50 taps
+ipcMain.on('probar-coordenadas', (event, config) => {
+    enviarLog(`🧪 Probando coordenadas (${config.buttonX}, ${config.buttonY})...`, 'info');
+
+    const scriptContent = `#!/bin/bash
+for i in {1..50}; do
+    adb shell input tap ${config.buttonX} ${config.buttonY}
+    sleep 0.08
+done
+echo "✅ Prueba completada: 50 taps"
+`;
+
+    fs.writeFileSync('/tmp/probar-tap-temp.sh', scriptContent);
+    exec('chmod +x /tmp/probar-tap-temp.sh', () => {
+        const testProcess = spawn('/tmp/probar-tap-temp.sh');
+
+        testProcess.stdout.on('data', (data) => {
+            enviarLog(data.toString().trim(), 'success');
+        });
+
+        testProcess.on('close', () => {
+            enviarLog('✅ Prueba finalizada', 'success');
+        });
+    });
+});
+
+// Iniciar bot
+ipcMain.on('start-bot-emulador', (event, config) => {
+    if (botProcess) {
+        enviarLog('⚠️ Bot ya está en ejecución', 'warning');
+        return;
+    }
+
+    enviarLog('🚀 Verificando conexión con emulador...', 'info');
+
+    // Verificar conexión ADB
+    exec('adb devices', (error, stdout) => {
+        if (error || !stdout.includes('emulator')) {
+            enviarLog('❌ Emulador no detectado. Inicia el emulador primero.', 'error');
+            return;
+        }
+
+        enviarLog('✅ Emulador conectado', 'success');
+        enviarLog('⚡ Iniciando bot...', 'info');
+
+        // Resetear estadísticas
+        estadisticas = {
+            clicksTotal: 0,
+            rafagasCompletadas: 0,
+            velocidad: 0,
+            inicioSesion: Date.now()
+        };
+
+        // Crear archivo de configuración temporal
+        const configPath = '/tmp/bot-config.json';
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+        // Iniciar bot con configuración
+        botProcess = spawn('node', ['bot-emulador-adb.js', configPath]);
+
+        botProcess.stdout.on('data', (data) => {
+            const output = data.toString();
+            procesarOutputBot(output);
+        });
+
+        botProcess.stderr.on('data', (data) => {
+            enviarLog(`Error: ${data.toString()}`, 'error');
+        });
+
+        botProcess.on('close', (code) => {
+            enviarLog(`🛑 Bot detenido (código: ${code})`, 'warning');
+            botProcess = null;
+        });
+
+        enviarLog('🤖 Bot activo en modo ráfagas', 'success');
+        enviarLog(`📍 Coordenadas: (${config.buttonX}, ${config.buttonY})`, 'info');
+        enviarLog(`📊 Taps por ráfaga: ${config.clicksMin}-${config.clicksMax}`, 'info');
+        enviarLog(`⏱️  Pausas: ${config.pausaMin}-${config.pausaMax}s`, 'info');
+        enviarLog(`⚡ Velocidad: ${config.velocidadMin}-${config.velocidadMax}ms`, 'info');
+    });
+});
+
+// Detener bot
+ipcMain.on('stop-bot-emulador', () => {
+    if (botProcess) {
+        botProcess.kill();
+        botProcess = null;
+        enviarLog('⏹ Bot detenido por el usuario', 'warning');
+        enviarEstadisticas();
+    } else {
+        enviarLog('⚠️ No hay bot en ejecución', 'warning');
+    }
+});
+
+// ==================== FUNCIONES AUXILIARES ====================
+
+function procesarOutputBot(output) {
+    const lineas = output.split('\n');
+
+    lineas.forEach(linea => {
+        linea = linea.trim();
+        if (!linea) return;
+
+        // Detectar ráfaga iniciada
+        if (linea.includes('RÁFAGA #')) {
+            const match = linea.match(/RÁFAGA #(\d+)/);
+            if (match) {
+                estadisticas.rafagasCompletadas = parseInt(match[1]) - 1;
+                enviarLog(`🎯 ${linea}`, 'info');
+            }
+        }
+        // Detectar progreso de taps
+        else if (linea.includes('taps (') && linea.includes('%')) {
+            const match = linea.match(/(\d+)\/\d+ taps/);
+            if (match) {
+                estadisticas.clicksTotal = parseInt(match[1]);
+                calcularVelocidad();
+                enviarEstadisticas();
+                enviarLog(linea, 'success');
+            }
+        }
+        // Detectar ráfaga completada
+        else if (linea.includes('RÁFAGA COMPLETADA')) {
+            estadisticas.rafagasCompletadas++;
+            enviarLog('✅ Ráfaga completada', 'success');
+            enviarEstadisticas();
+        }
+        // Detectar descanso
+        else if (linea.includes('DESCANSO')) {
+            enviarLog(linea, 'warning');
+        }
+        // Otros mensajes
+        else if (linea.includes('✅') || linea.includes('✓')) {
+            enviarLog(linea, 'success');
+        }
+        else if (linea.includes('❌')) {
+            enviarLog(linea, 'error');
+        }
+        else if (linea.includes('⚡') || linea.includes('🎯')) {
+            enviarLog(linea, 'info');
+        }
+    });
+}
+
+function calcularVelocidad() {
+    if (estadisticas.inicioSesion) {
+        const tiempoTranscurrido = (Date.now() - estadisticas.inicioSesion) / 1000 / 60; // minutos
+        if (tiempoTranscurrido > 0) {
+            estadisticas.velocidad = Math.round(estadisticas.clicksTotal / tiempoTranscurrido);
+        }
+    }
+}
+
+function enviarLog(message, type = 'info') {
+    if (mainWindow) {
+        mainWindow.webContents.send('bot-log', { message, type });
+    }
+}
+
+function enviarEstadisticas() {
+    if (mainWindow) {
+        mainWindow.webContents.send('bot-stats', estadisticas);
+    }
+}
+
+// ==================== MANEJO DE ERRORES ====================
+
+process.on('uncaughtException', (error) => {
+    console.error('Error no capturado:', error);
+    enviarLog(`❌ Error crítico: ${error.message}`, 'error');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Promesa rechazada:', reason);
+    enviarLog(`❌ Error: ${reason}`, 'error');
+});

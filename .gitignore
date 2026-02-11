@@ -1,0 +1,27 @@
+node_modules/
+.DS_Store
+*.log
+.env
+.vscode/
+cookies.json
+chrome-profile/
+debug-*.png
+analisis-*.png
+reporte-*.json
+batalla-*.png
+
+# Build artifacts
+dist/
+*.app
+
+# Screenshots
+*.png
+!icon.png
+
+# Temporary files
+/tmp/
+*.tmp
+
+# macOS
+.AppleDouble
+.LSOverride

@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POPPO Bot - Interfaz de Control</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e4e4e4;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-app-region: drag;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+      gap: 0;
+    }
+
+    .header {
+      grid-column: 1 / -1;
+      background: linear-gradient(90deg, #0f3460 0%, #16213e 100%);
+      padding: 20px 30px;
+      border-bottom: 2px solid #e94560;
+      -webkit-app-region: drag;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #e94560;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 13px;
+      color: #a0a0a0;
+    }
+
+    .sidebar {
+      background: #16213e;
+      padding: 20px;
+      border-right: 1px solid #0f3460;
+      overflow-y: auto;
+      -webkit-app-region: no-drag;
+    }
+
+    .main {
+      padding: 20px;
+      overflow-y: auto;
+      -webkit-app-region: no-drag;
+    }
+
+    .section {
+      background: #0f3460;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #1a3a5c;
+    }
+
+    .section h2 {
+      font-size: 16px;
+      color: #00d4ff;
+      margin-bottom: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section h2::before {
+      content: '●';
+      color: #e94560;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      color: #a0a0a0;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1a1a2e;
+      border: 1px solid #2a3f5f;
+      border-radius: 6px;
+      color: #e4e4e4;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #00d4ff;
+    }
+
+    .range-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .range-label {
+      font-size: 12px;
+      color: #00d4ff;
+      margin-bottom: 4px;
+    }
+
+    button {
+      -webkit-app-region: no-drag;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-start {
+      background: linear-gradient(135deg, #00d4ff 0%, #0091ff 100%);
+      color: #1a1a2e;
+      box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.6);
+    }
+
+    .btn-start:active {
+      transform: translateY(0);
+    }
+
+    .btn-stop {
+      background: linear-gradient(135deg, #e94560 0%, #c02942 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+    }
+
+    .btn-stop:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(233, 69, 96, 0.6);
+    }
+
+    .btn-stop:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #1a3a5c;
+    }
+
+    .stat-card h3 {
+      font-size: 12px;
+      color: #a0a0a0;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #00d4ff;
+    }
+
+    .stat-card .value.secondary {
+      color: #e94560;
+    }
+
+    .log-container {
+      background: #0a0a14;
+      border-radius: 10px;
+      padding: 15px;
+      height: calc(100vh - 400px);
+      overflow-y: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      border: 1px solid #1a1a2e;
+    }
+
+    .log-entry {
+      padding: 6px 10px;
+      margin-bottom: 4px;
+      border-radius: 4px;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+
+    .log-entry.info {
+      color: #00d4ff;
+      background: rgba(0, 212, 255, 0.1);
+    }
+
+    .log-entry.success {
+      color: #00ff88;
+      background: rgba(0, 255, 136, 0.1);
+      font-weight: 600;
+    }
+
+    .log-entry.warning {
+      color: #ffa500;
+      background: rgba(255, 165, 0, 0.1);
+    }
+
+    .log-entry.error {
+      color: #e94560;
+      background: rgba(233, 69, 96, 0.1);
+    }
+
+    .log-entry.rafaga {
+      color: #e94560;
+      background: linear-gradient(90deg, rgba(233, 69, 96, 0.2) 0%, rgba(233, 69, 96, 0.05) 100%);
+      font-weight: 700;
+      font-size: 14px;
+      border-left: 4px solid #e94560;
+      padding-left: 12px;
+    }
+
+    .log-entry.objetivo {
+      color: #00ff88;
+      background: linear-gradient(90deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 255, 136, 0.05) 100%);
+      font-weight: 700;
+      font-size: 14px;
+      border-left: 4px solid #00ff88;
+      padding-left: 12px;
+    }
+
+    .log-entry.completada {
+      color: #00d4ff;
+      background: linear-gradient(90deg, rgba(0, 212, 255, 0.3) 0%, rgba(0, 212, 255, 0.05) 100%);
+      font-weight: 700;
+      font-size: 14px;
+      border-left: 4px solid #00d4ff;
+      padding-left: 12px;
+      border-radius: 6px;
+    }
+
+    .log-entry.stats {
+      color: #ffa500;
+      background: linear-gradient(90deg, rgba(255, 165, 0, 0.2) 0%, rgba(255, 165, 0, 0.05) 100%);
+      font-weight: 600;
+      border-left: 4px solid #ffa500;
+      padding-left: 12px;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-indicator.active {
+      background: #00ff88;
+      box-shadow: 0 0 10px #00ff88;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.inactive {
+      background: #666;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0a0a14;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2a3f5f;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3a5f8f;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      margin: 0;
+      cursor: pointer;
+      color: #e4e4e4;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌸 POPPO Bot Ultra Turbo</h1>
+      <p>Sistema de ráfagas inteligente con configuración personalizada</p>
+    </div>
+
+    <div class="sidebar">
+      <div class="section">
+        <h2>Configuración URL</h2>
+        <div class="form-group">
+          <label>URL del Participante</label>
+          <input type="text" id="url" value="https://www.poppo.com/@8712783/live" placeholder="https://www.poppo.com/@usuario/live">
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Ráfagas de Clicks</h2>
+        <div class="form-group">
+          <label>Cantidad de Clicks por Ráfaga</label>
+          <div class="range-group">
+            <div>
+              <div class="range-label">Mínimo</div>
+              <input type="number" id="clicksMin" value="300" min="50" max="5000">
+            </div>
+            <div>
+              <div class="range-label">Máximo</div>
+              <input type="number" id="clicksMax" value="1400" min="50" max="5000">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Pausas entre Ráfagas</h2>
+        <div class="form-group">
+          <label>Tiempo de Descanso (segundos)</label>
+          <div class="range-group">
+            <div>
+              <div class="range-label">Mínimo</div>
+              <input type="number" id="pausaMin" value="4" min="1" max="60">
+            </div>
+            <div>
+              <div class="range-label">Máximo</div>
+              <input type="number" id="pausaMax" value="15" min="1" max="60">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Velocidad de Clicks</h2>
+        <div class="form-group">
+          <label>Delay entre Clicks (milisegundos)</label>
+          <div class="range-group">
+            <div>
+              <div class="range-label">Mínimo</div>
+              <input type="number" id="velocidadMin" value="60" min="10" max="1000">
+            </div>
+            <div>
+              <div class="range-label">Máximo</div>
+              <input type="number" id="velocidadMax" value="200" min="10" max="1000">
+            </div>
+          </div>
+        </div>
+
+        <div class="checkbox-group">
+          <input type="checkbox" id="headless">
+          <label for="headless">Modo oculto (sin ventana del navegador)</label>
+        </div>
+      </div>
+
+      <div class="section">
+        <button class="btn btn-start" id="startBtn">⚡ Iniciar Bot</button>
+        <button class="btn btn-stop" id="stopBtn" disabled style="margin-top: 10px;">⏹ Detener Bot</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>⚙️ Estado</h3>
+          <div class="value">
+            <span class="status-indicator inactive" id="statusIndicator"></span>
+            <span id="statusText">Detenido</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <h3>💎 Total Clicks</h3>
+          <div class="value" id="totalClicks">0</div>
+        </div>
+        <div class="stat-card">
+          <h3>⚡ Ráfagas</h3>
+          <div class="value secondary" id="rafagas">0</div>
+        </div>
+        <div class="stat-card">
+          <h3>🚀 Velocidad</h3>
+          <div class="value secondary" id="velocidad">0 c/m</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Registro de Actividad</h2>
+        <div class="log-container" id="logContainer">
+          <div class="log-entry info">
+            <span>📝 Sistema listo. Configura los parámetros y presiona "Iniciar Bot"</span>
+          </div>
+          <div class="log-entry info">
+            <span>💡 Consejo: Deja el navegador visible para verificar que funciona correctamente</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    let isRunning = false;
+    let startTime = null;
+    let statsInterval = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    // Elementos
+    const startBtn = $('startBtn');
+    const stopBtn = $('stopBtn');
+    const logContainer = $('logContainer');
+    const statusIndicator = $('statusIndicator');
+    const statusText = $('statusText');
+    const totalClicks = $('totalClicks');
+    const rafagas = $('rafagas');
+    const velocidad = $('velocidad');
+
+    // Iniciar bot
+    startBtn.addEventListener('click', () => {
+      const config = {
+        url: $('url').value.trim(),
+        clicksMin: parseInt($('clicksMin').value),
+        clicksMax: parseInt($('clicksMax').value),
+        pausaMin: parseInt($('pausaMin').value),
+        pausaMax: parseInt($('pausaMax').value),
+        velocidadMin: parseInt($('velocidadMin').value),
+        velocidadMax: parseInt($('velocidadMax').value),
+        headless: $('headless').checked
+      };
+
+      // Validar
+      if (!config.url || !config.url.includes('poppo.com')) {
+        addLog('error', '❌ URL inválida');
+        return;
+      }
+
+      if (config.clicksMin > config.clicksMax) {
+        addLog('error', '❌ El mínimo de clicks no puede ser mayor que el máximo');
+        return;
+      }
+
+      if (config.pausaMin > config.pausaMax) {
+        addLog('error', '❌ El mínimo de pausa no puede ser mayor que el máximo');
+        return;
+      }
+
+      ipcRenderer.send('start-bot', config);
+
+      isRunning = true;
+      startTime = Date.now();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+
+      statusIndicator.classList.remove('inactive');
+      statusIndicator.classList.add('active');
+      statusText.textContent = 'Activo';
+
+      // Actualizar stats cada segundo
+      statsInterval = setInterval(updateStats, 1000);
+    });
+
+    // Detener bot
+    stopBtn.addEventListener('click', () => {
+      ipcRenderer.send('stop-bot');
+    });
+
+    // Recibir logs del bot
+    ipcRenderer.on('bot-log', (event, data) => {
+      addLog(data.type, data.message);
+
+      // Extraer estadísticas de los logs
+      const msg = data.message;
+
+      // Nuevo formato: "Total clicks: 1247"
+      if (msg.includes('Total clicks:')) {
+        const match = msg.match(/Total clicks:\s*(\d+)/);
+        if (match) {
+          totalClicks.textContent = parseInt(match[1]).toLocaleString();
+        }
+      }
+
+      // "Ráfagas completadas: 5"
+      if (msg.includes('Ráfagas completadas:')) {
+        const match = msg.match(/Ráfagas completadas:\s*(\d+)/);
+        if (match) {
+          rafagas.textContent = match[1];
+        }
+      }
+
+      // "Velocidad promedio: 272 clicks/min"
+      if (msg.includes('Velocidad promedio:')) {
+        const match = msg.match(/Velocidad promedio:\s*([\d.]+)/);
+        if (match) {
+          velocidad.textContent = parseFloat(match[1]).toFixed(1) + ' c/m';
+        }
+      }
+
+      // Formato antiguo (compatibilidad)
+      if (msg.includes('STATS:')) {
+        const match = msg.match(/(\d+) clicks.*?(\d+) ráfagas.*?([\d.]+) clicks\/min/);
+        if (match) {
+          totalClicks.textContent = parseInt(match[1]).toLocaleString();
+          rafagas.textContent = match[2];
+          velocidad.textContent = match[3] + ' c/m';
+        }
+      }
+    });
+
+    // Bot detenido
+    ipcRenderer.on('bot-stopped', () => {
+      isRunning = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      statusIndicator.classList.remove('active');
+      statusIndicator.classList.add('inactive');
+      statusText.textContent = 'Detenido';
+
+      if (statsInterval) {
+        clearInterval(statsInterval);
+        statsInterval = null;
+      }
+    });
+
+    function addLog(type, message) {
+      const entry = document.createElement('div');
+
+      // Detectar tipo especial de mensaje
+      let logType = type;
+      if (message.includes('🎯 RÁFAGA #') || message.includes('RÁFAGA #')) {
+        logType = 'rafaga';
+      } else if (message.includes('📊 OBJETIVO:') || message.includes('OBJETIVO:')) {
+        logType = 'objetivo';
+      } else if (message.includes('✅ RÁFAGA COMPLETADA') || message.includes('COMPLETADA:')) {
+        logType = 'completada';
+      } else if (message.includes('📊 ESTADÍSTICAS') || message.includes('STATS:')) {
+        logType = 'stats';
+      }
+
+      entry.className = `log-entry ${logType}`;
+
+      const time = new Date().toLocaleTimeString();
+
+      // Si es un separador visual, no mostrar timestamp
+      if (message.includes('╔═══') || message.includes('║') || message.includes('╚═══')) {
+        entry.innerHTML = `<span>${message}</span>`;
+      } else {
+        entry.innerHTML = `<span>[${time}] ${message}</span>`;
+      }
+
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+
+      // Limitar a 500 entradas
+      if (logContainer.children.length > 500) {
+        logContainer.removeChild(logContainer.firstChild);
+      }
+    }
+
+    function updateStats() {
+      if (!isRunning || !startTime) return;
+
+      const uptime = Math.floor((Date.now() - startTime) / 1000);
+      const minutes = Math.floor(uptime / 60);
+      const seconds = uptime % 60;
+
+      // Actualizar en el status si es necesario
+      // statusText.textContent = `Activo (${minutes}:${seconds.toString().padStart(2, '0')})`;
+    }
+  </script>
+</body>
+</html>

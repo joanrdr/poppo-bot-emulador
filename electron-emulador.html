@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POPPO Bot Emulador</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            height: 100vh;
+            gap: 0;
+        }
+
+        .sidebar {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            overflow-y: auto;
+            border-right: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin-bottom: 12px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .config-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .config-section h3 {
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: #ffd700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-group {
+            margin-bottom: 8px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 4px;
+            opacity: 0.9;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 6px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 13px;
+        }
+
+        input[type="number"]:focus {
+            outline: 2px solid #ffd700;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn-success {
+            background: #00d4aa;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #00c299;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #ff3838;
+        }
+
+        .btn-warning {
+            background: #ffa502;
+            color: #fff;
+        }
+
+        .btn-warning:hover {
+            background: #ff8c00;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            color: #ffd700;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .log-container {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            min-height: 0;
+        }
+
+        .log-entry {
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            line-height: 1.4;
+        }
+
+        .log-info { color: #00d4aa; }
+        .log-success { color: #ffd700; font-weight: bold; }
+        .log-warning { color: #ffa502; }
+        .log-error { color: #ff4757; }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active { background: #00ff00; }
+        .status-inactive { background: #ff4757; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .preset-btn {
+            padding: 6px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #ffd700;
+        }
+
+        .control-buttons {
+            margin-top: auto;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🌸 POPPO Bot Emulador</h1>
+
+            <div class="config-section">
+                <h3>📍 Coordenadas</h3>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>X (Horizontal)</label>
+                        <input type="number" id="coordX" value="83" min="0" max="1080">
+                    </div>
+                    <div class="input-group">
+                        <label>Y (Vertical)</label>
+                        <input type="number" id="coordY" value="1349" min="0" max="2400">
+                    </div>
+                </div>
+                <button class="btn btn-warning" onclick="marcarCoordenadas()">
+                    🎯 Marcar en Pantalla
+                </button>
+                <button class="btn btn-primary" onclick="probarCoordenadas()">
+                    🧪 Probar (50 taps)
+                </button>
+            </div>
+
+            <div class="config-section">
+                <h3>🎯 Taps por Ráfaga</h3>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Mínimo</label>
+                        <input type="number" id="clicksMin" value="300" min="50" max="2000">
+                    </div>
+                    <div class="input-group">
+                        <label>Máximo</label>
+                        <input type="number" id="clicksMax" value="1400" min="100" max="5000">
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>⏱️ Pausas (segundos)</h3>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Mínimo</label>
+                        <input type="number" id="pausaMin" value="4" min="1" max="30">
+                    </div>
+                    <div class="input-group">
+                        <label>Máximo</label>
+                        <input type="number" id="pausaMax" value="15" min="2" max="60">
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>⚡ Velocidad (ms)</h3>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Mínimo</label>
+                        <input type="number" id="velocidadMin" value="60" min="10" max="500">
+                    </div>
+                    <div class="input-group">
+                        <label>Máximo</label>
+                        <input type="number" id="velocidadMax" value="200" min="20" max="1000">
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>⚙️ Presets Rápidos</h3>
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="presetUltraRapido()">⚡ Ultra Rápido</button>
+                    <button class="preset-btn" onclick="presetBalanceado()">⚖️ Balanceado</button>
+                    <button class="preset-btn" onclick="presetConservador()">🐢 Conservador</button>
+                    <button class="preset-btn" onclick="presetLoco()">🔥 Modo Loco</button>
+                </div>
+            </div>
+
+            <div class="control-buttons">
+                <button class="btn btn-success" id="btnIniciar" onclick="iniciarBot()">
+                    ⚡ INICIAR BOT
+                </button>
+                <button class="btn btn-danger" id="btnDetener" onclick="detenerBot()" disabled>
+                    ⏹ DETENER BOT
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="statEstado">
+                        <span class="status-indicator status-inactive"></span>
+                        Inactivo
+                    </div>
+                    <div class="stat-label">Estado</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statClicks">0</div>
+                    <div class="stat-label">Total Taps</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statRafagas">0</div>
+                    <div class="stat-label">Ráfagas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statVelocidad">0</div>
+                    <div class="stat-label">Taps/min</div>
+                </div>
+            </div>
+
+            <div class="log-container" id="logContainer">
+                <div class="log-entry log-info">
+                    ℹ️  Bot listo. Configura y presiona INICIAR BOT.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        // Presets
+        function presetUltraRapido() {
+            document.getElementById('clicksMin').value = 500;
+            document.getElementById('clicksMax').value = 1400;
+            document.getElementById('pausaMin').value = 1;
+            document.getElementById('pausaMax').value = 5;
+            document.getElementById('velocidadMin').value = 50;
+            document.getElementById('velocidadMax').value = 150;
+            addLog('⚡ Preset Ultra Rápido cargado', 'success');
+        }
+
+        function presetBalanceado() {
+            document.getElementById('clicksMin').value = 300;
+            document.getElementById('clicksMax').value = 1400;
+            document.getElementById('pausaMin').value = 4;
+            document.getElementById('pausaMax').value = 15;
+            document.getElementById('velocidadMin').value = 60;
+            document.getElementById('velocidadMax').value = 200;
+            addLog('⚖️ Preset Balanceado cargado', 'success');
+        }
+
+        function presetConservador() {
+            document.getElementById('clicksMin').value = 200;
+            document.getElementById('clicksMax').value = 800;
+            document.getElementById('pausaMin').value = 8;
+            document.getElementById('pausaMax').value = 20;
+            document.getElementById('velocidadMin').value = 100;
+            document.getElementById('velocidadMax').value = 300;
+            addLog('🐢 Preset Conservador cargado', 'success');
+        }
+
+        function presetLoco() {
+            document.getElementById('clicksMin').value = 800;
+            document.getElementById('clicksMax').value = 2000;
+            document.getElementById('pausaMin').value = 1;
+            document.getElementById('pausaMax').value = 3;
+            document.getElementById('velocidadMin').value = 20;
+            document.getElementById('velocidadMax').value = 80;
+            addLog('🔥 Preset MODO LOCO cargado', 'success');
+        }
+
+        function marcarCoordenadas() {
+            addLog('🎯 Abriendo herramienta de marcado...', 'info');
+            ipcRenderer.send('marcar-coordenadas');
+        }
+
+        function probarCoordenadas() {
+            const config = getConfig();
+            addLog(`🧪 Probando coordenadas (${config.buttonX}, ${config.buttonY})...`, 'info');
+            ipcRenderer.send('probar-coordenadas', config);
+        }
+
+        function getConfig() {
+            return {
+                buttonX: parseInt(document.getElementById('coordX').value),
+                buttonY: parseInt(document.getElementById('coordY').value),
+                clicksMin: parseInt(document.getElementById('clicksMin').value),
+                clicksMax: parseInt(document.getElementById('clicksMax').value),
+                pausaMin: parseInt(document.getElementById('pausaMin').value),
+                pausaMax: parseInt(document.getElementById('pausaMax').value),
+                velocidadMin: parseInt(document.getElementById('velocidadMin').value),
+                velocidadMax: parseInt(document.getElementById('velocidadMax').value)
+            };
+        }
+
+        function iniciarBot() {
+            const config = getConfig();
+            addLog('🚀 Iniciando bot...', 'success');
+            ipcRenderer.send('start-bot-emulador', config);
+
+            document.getElementById('btnIniciar').disabled = true;
+            document.getElementById('btnDetener').disabled = false;
+            updateStatus(true);
+        }
+
+        function detenerBot() {
+            addLog('⏹ Deteniendo bot...', 'warning');
+            ipcRenderer.send('stop-bot-emulador');
+
+            document.getElementById('btnIniciar').disabled = false;
+            document.getElementById('btnDetener').disabled = true;
+            updateStatus(false);
+        }
+
+        function updateStatus(active) {
+            const statEstado = document.getElementById('statEstado');
+            const indicator = statEstado.querySelector('.status-indicator');
+
+            if (active) {
+                statEstado.innerHTML = '<span class="status-indicator status-active"></span>Activo';
+                indicator.classList.remove('status-inactive');
+                indicator.classList.add('status-active');
+            } else {
+                statEstado.innerHTML = '<span class="status-indicator status-inactive"></span>Inactivo';
+                indicator.classList.remove('status-active');
+                indicator.classList.add('status-inactive');
+            }
+        }
+
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Escuchar mensajes del bot
+        ipcRenderer.on('bot-log', (event, data) => {
+            addLog(data.message, data.type || 'info');
+        });
+
+        ipcRenderer.on('bot-stats', (event, stats) => {
+            document.getElementById('statClicks').textContent = stats.clicksTotal.toLocaleString();
+            document.getElementById('statRafagas').textContent = stats.rafagasCompletadas;
+            if (stats.velocidad) {
+                document.getElementById('statVelocidad').textContent = stats.velocidad;
+            }
+        });
+
+        ipcRenderer.on('coordenadas-actualizadas', (event, coords) => {
+            document.getElementById('coordX').value = coords.x;
+            document.getElementById('coordY').value = coords.y;
+            addLog(`✅ Coordenadas actualizadas: (${coords.x}, ${coords.y})`, 'success');
+        });
+    </script>
+</body>
+</html>

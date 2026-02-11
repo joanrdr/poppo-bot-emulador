@@ -12,6 +12,28 @@ let estadisticas = {
     inicioSesion: null
 };
 
+// Determinar ruta de ADB
+function findAdbPath() {
+    const possiblePaths = [
+        '/opt/homebrew/bin/adb',           // Homebrew Apple Silicon
+        '/usr/local/bin/adb',              // Homebrew Intel
+        '/usr/bin/adb',                    // Linux
+        process.env.ANDROID_HOME ? `${process.env.ANDROID_HOME}/platform-tools/adb` : null,
+        'adb'                              // PATH del sistema
+    ].filter(Boolean);
+
+    for (const adbPath of possiblePaths) {
+        if (adbPath === 'adb' || fs.existsSync(adbPath)) {
+            return adbPath;
+        }
+    }
+
+    return 'adb'; // Fallback
+}
+
+const ADB_PATH = findAdbPath();
+console.log('🔍 ADB path:', ADB_PATH);
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
@@ -60,7 +82,7 @@ ipcMain.on('marcar-coordenadas', () => {
     enviarLog('🎯 Abriendo herramienta de marcado...', 'info');
 
     // Tomar captura de pantalla
-    exec('adb shell screencap -p /sdcard/batalla.png && adb pull /sdcard/batalla.png batalla.png', (error) => {
+    exec(`${ADB_PATH} shell screencap -p /sdcard/batalla.png && ${ADB_PATH} pull /sdcard/batalla.png batalla.png`, (error) => {
         if (error) {
             enviarLog('❌ Error al capturar pantalla', 'error');
             return;
@@ -126,7 +148,7 @@ ipcMain.on('start-bot-emulador', (event, config) => {
     enviarLog('🚀 Verificando conexión con emulador...', 'info');
 
     // Verificar conexión ADB
-    exec('adb devices', (error, stdout) => {
+    exec(`${ADB_PATH} devices`, (error, stdout) => {
         if (error || !stdout.includes('emulator')) {
             enviarLog('❌ Emulador no detectado. Inicia el emulador primero.', 'error');
             return;

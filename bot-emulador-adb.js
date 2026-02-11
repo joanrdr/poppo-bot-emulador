@@ -6,6 +6,7 @@
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const { existsSync } = require('fs');
 
 class BotEmuladorADB {
   constructor(config) {
@@ -16,6 +17,28 @@ class BotEmuladorADB {
       rafagasCompletadas: 0,
       startTime: Date.now()
     };
+
+    // Determinar ruta de ADB
+    this.adbPath = this.findAdbPath();
+  }
+
+  findAdbPath() {
+    // Rutas comunes de ADB
+    const possiblePaths = [
+      '/opt/homebrew/bin/adb',           // Homebrew Apple Silicon
+      '/usr/local/bin/adb',              // Homebrew Intel
+      '/usr/bin/adb',                    // Linux
+      process.env.ANDROID_HOME ? `${process.env.ANDROID_HOME}/platform-tools/adb` : null,
+      'adb'                              // PATH del sistema
+    ].filter(Boolean);
+
+    for (const path of possiblePaths) {
+      if (path === 'adb' || existsSync(path)) {
+        return path;
+      }
+    }
+
+    return 'adb'; // Fallback
   }
 
   log(message) {
@@ -25,7 +48,7 @@ class BotEmuladorADB {
   // Ejecutar comando ADB
   async adb(command) {
     try {
-      const { stdout } = await execPromise(`adb ${command}`);
+      const { stdout } = await execPromise(`${this.adbPath} ${command}`);
       return stdout.trim();
     } catch (error) {
       throw new Error(`ADB Error: ${error.message}`);
